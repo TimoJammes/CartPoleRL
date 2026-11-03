@@ -65,6 +65,7 @@ def main():
                 if InputCommand.QUIT in event_commands:
                     break
 
+            
             action = agent.act(obs)
             obs_prime, reward, done = env.step(action)
 
@@ -74,12 +75,17 @@ def main():
             if learning:
                 agent.update(obs, action, reward, obs_prime, done)
 
-            obs = env.reset() if done != EpisodeDoneState.NONE else obs_prime
+            obs = obs_prime
 
             if done != EpisodeDoneState.NONE:
                 episode += 1
                 if episode % 100 == 0:
                     print(episode)
+
+                obs = env.reset()
+                agent.episode_reset()
+                
+                
 
             if ui is not None:
                 ui.render(env, action)

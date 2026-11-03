@@ -39,3 +39,6 @@ class HumanController(Agent):
         pass
     def save(self, run_dir):
         pass
+
+    def episode_reset(self):
+        pass

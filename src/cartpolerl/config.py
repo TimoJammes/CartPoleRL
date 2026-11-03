@@ -84,7 +84,7 @@ class AgentConfig:
 
     bin_config: BinningConfig = field(default_factory=BinningConfig)
     default_n_bins: int = 7
-
+    min_decision_interval_s: float = 0.1 #seconds, simulation clock (rounds up to nearest #steps) 
     
 
 @dataclass(frozen=True)
