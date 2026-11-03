@@ -11,6 +11,7 @@ from .agents import Agent, QLearningTableAgent
 from .pygame_ui import PygameUI, InputCommand
 from .human_controller import HumanController
 from . import runs
+from .done import EpisodeDoneState
 
 def main():
     args = parse_args()
@@ -32,12 +33,12 @@ def main():
         cfg = replace(cfg, agent=replace(cfg.agent, epsilon=0.0))
     elif args.epsilon is not None:
         cfg = replace(cfg, agent=replace(cfg.agent, epsilon=args.epsilon))
-    elif args.fail_angle is not None:
+    if args.fail_angle is not None:
         if args.fail_angle == -1:
             args.fail_angle = None
         cfg = replace(cfg, task=replace(cfg.task, fail_angle_deg=args.fail_angle))
 
-    env = CartPoleEnv(cfg.physics, cfg.task, env_rng, REWARDS[cfg.task.reward], OBSERVATIONS[cfg.task.observation])
+    env = CartPoleEnv(cfg.physics, cfg.task, env_rng, REWARDS[cfg.task.reward], OBSERVATIONS[cfg.task.observation], cfg.display.fps)
 
     agent: Agent
     if args.human:
@@ -54,9 +55,9 @@ def main():
 
 
     obs = env.reset()
-
+    episode = 1
     try:
-        while True:
+        while episode <= 10000:
             if ui is not None:
                 ui.tick()
 
@@ -66,10 +67,19 @@ def main():
 
             action = agent.act(obs)
             obs_prime, reward, done = env.step(action)
+
+            if done == EpisodeDoneState.STEPS_EXCEEDED and args.watch:
+                done = EpisodeDoneState.NONE
+                
             if learning:
                 agent.update(obs, action, reward, obs_prime, done)
 
-            obs = env.reset() if done else obs_prime
+            obs = env.reset() if done != EpisodeDoneState.NONE else obs_prime
+
+            if done != EpisodeDoneState.NONE:
+                episode += 1
+                if episode % 100 == 0:
+                    print(episode)
 
             if ui is not None:
                 ui.render(env, action)
@@ -82,7 +92,8 @@ def main():
 
         if args.save:
             run_dir = runs.create_run_dir(args.run_dir, agent.agent_name)
-            runs.save_run(run_dir, cfg, env.spec, agent, {"env": env_rng, "agent": agent_rng},
+            runs.save_run(run_dir, cfg, env.spec, agent,# episode,
+                           {"env": env_rng, "agent": agent_rng},
                           parent_run=loaded.path.name if loaded is not None else None)
             print(f"Saved run to {run_dir}")
 

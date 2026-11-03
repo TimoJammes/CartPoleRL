@@ -8,7 +8,7 @@ from .config import AgentConfig, BinEdgeConfig
 from .env import EnvSpec
 from .state import Observation
 from .actions import Action
-
+from .done import EpisodeDoneState
 
 class Agent(ABC):
     agent_name: str
@@ -140,10 +140,10 @@ class QLearningTableAgent(Agent):
 
         return self.actions[action_num]
 
-    def update(self, obs: Observation, action: Action, reward: float, obs_prime: Observation, done: bool):
+    def update(self, obs: Observation, action: Action, reward: float, obs_prime: Observation, done: EpisodeDoneState):
         obs_discretized = self._discretize(obs)
 
-        target = reward if done else reward + self.cfg.gamma * self._Qstar(obs_prime)
+        target = reward if done == EpisodeDoneState.FAIL else reward + self.cfg.gamma * self._Qstar(obs_prime)
         action_index = self.action_to_index[action]
         idx = obs_discretized + (action_index,)
         self.Q[idx] += self.cfg.alpha * (target - self.Q[idx])

@@ -91,8 +91,9 @@ class TaskConfig:
     reward: str = "shaped"          # key in rewards.REWARDS
     observation: str = "full"       # key in state.OBSERVATIONS
     fail_angle_deg: float | None = 20      # None = never terminate (free play)
-    # max_steps: int | None = None #1000           # cap on episode length
-    # max_time: float | None = None
+    # max_steps: int | None = 1000           # cap on episode length
+    max_time: float | None = 5 # seconds
+    num_episodes: int = 1000
     start_angle_jitter_deg: float = 1.0    # reset() samples upright ± this
 
 @dataclass(frozen=True)

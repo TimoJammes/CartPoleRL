@@ -5,7 +5,7 @@ from .config import TaskConfig, PhysicsConfig
 from .actions import Action
 from .rewards import Reward
 from .state import State, Observation, FullObservation
-
+from .done import EpisodeDoneState
 @dataclass(frozen=True)
 class VarInfo:
     name: str
@@ -26,7 +26,8 @@ class EnvSpec:
 
 class CartPoleEnv:
 
-    def __init__(self, physics_cfg: PhysicsConfig, task_cfg: TaskConfig, rng: np.random.Generator, reward: Reward, observation_class: type[Observation]):
+    def __init__(self, physics_cfg: PhysicsConfig, task_cfg: TaskConfig, rng: np.random.Generator, reward: Reward, observation_class: type[Observation],
+                 display_fps: int):
         self.physics_cfg = physics_cfg
         self.task_cfg = task_cfg
         self.rng = rng
@@ -48,11 +49,12 @@ class CartPoleEnv:
 
         self.spec = EnvSpec(tuple(VarInfo(f_name, *self.var_to_bounds[f_name]) for f_name in self._obs_names), task_cfg.actions, reward.max_val)
 
+        self.display_fps = display_fps
 
         self.reset() # sets self.state
     
     
-    def step(self, action: Action) -> tuple[Observation, float, bool]: #state, reward, done
+    def step(self, action: Action) -> tuple[Observation, float, EpisodeDoneState]: #state, reward, done
 
         next_state = State(self.state.x, self.state.vel, self.state.theta, self.state.omega)
 
@@ -78,13 +80,24 @@ class CartPoleEnv:
 
         reward = self.reward.fn(self.physics_cfg, self.task_cfg, self.state, action, next_state)
         self.state = next_state
-        return self.get_obs(self.state), reward, self.is_done(self.state)
 
-    def is_done(self, state: State):
-        if self.task_cfg.fail_angle_deg is None:
-            return False
-        
-        return np.rad2deg(abs(state.phi)) > self.task_cfg.fail_angle_deg
+
+        self.curr_step += 1
+
+        return self.get_obs(self.state), reward, self.is_done()
+
+    def is_done(self) -> EpisodeDoneState:
+
+        if self.task_cfg.fail_angle_deg is not None:
+            if np.rad2deg(abs(self.state.phi)) > self.task_cfg.fail_angle_deg:
+                return EpisodeDoneState.FAIL
+            
+        if self.task_cfg.max_time is not None:
+            if self.curr_step / self.display_fps > self.task_cfg.max_time:
+                return EpisodeDoneState.STEPS_EXCEEDED
+            
+            
+        return EpisodeDoneState.NONE
 
     def get_obs(self, state: State | None = None) -> Observation:
         if state is None:
@@ -96,6 +109,8 @@ class CartPoleEnv:
 
     def reset(self):
         self.state = State(0, 0, self._wrap(np.deg2rad(self.rng.uniform(180-self.task_cfg.start_angle_jitter_deg, 180+self.task_cfg.start_angle_jitter_deg))), 0)
+
+        self.curr_step = 0
 
         return self.get_obs()
 
