@@ -38,7 +38,7 @@ def main():
             args.fail_angle = None
         cfg = replace(cfg, task=replace(cfg.task, fail_angle_deg=args.fail_angle))
 
-    env = CartPoleEnv(cfg.physics, cfg.task, env_rng, REWARDS[cfg.task.reward], OBSERVATIONS[cfg.task.observation], cfg.display.fps)
+    env = CartPoleEnv(cfg.physics, cfg.task, env_rng, REWARDS[cfg.task.reward], OBSERVATIONS[cfg.task.observation])
 
     agent: Agent
     if args.human:
@@ -70,7 +70,7 @@ def main():
 
             if done == EpisodeDoneState.STEPS_EXCEEDED and args.watch:
                 done = EpisodeDoneState.NONE
-                
+
             if learning:
                 agent.update(obs, action, reward, obs_prime, done)
 

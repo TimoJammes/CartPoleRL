@@ -27,6 +27,8 @@ class PygameUI:
         self.clock = pygame.time.Clock()
 
         self.to_screen_scaling = (self.cfg.window_width - self.cfg.cart_width) / physics_cfg.track_width
+
+        self.fps = round(1 / physics_cfg.dt)
             
     def process_events(self) -> set[InputCommand]:
         events = set()
@@ -41,7 +43,7 @@ class PygameUI:
         return events
     
     def tick(self):
-        self.clock.tick(self.cfg.fps)
+        self.clock.tick(self.fps)
 
     def render(self, env: CartPoleEnv, action: Action):
 

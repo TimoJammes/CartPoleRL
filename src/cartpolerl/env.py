@@ -26,8 +26,7 @@ class EnvSpec:
 
 class CartPoleEnv:
 
-    def __init__(self, physics_cfg: PhysicsConfig, task_cfg: TaskConfig, rng: np.random.Generator, reward: Reward, observation_class: type[Observation],
-                 display_fps: int):
+    def __init__(self, physics_cfg: PhysicsConfig, task_cfg: TaskConfig, rng: np.random.Generator, reward: Reward, observation_class: type[Observation]):
         self.physics_cfg = physics_cfg
         self.task_cfg = task_cfg
         self.rng = rng
@@ -48,8 +47,6 @@ class CartPoleEnv:
             assert f_name in self.var_to_bounds.keys(), f"variable {f_name} missing from var_to_bounds table in env constructor."
 
         self.spec = EnvSpec(tuple(VarInfo(f_name, *self.var_to_bounds[f_name]) for f_name in self._obs_names), task_cfg.actions, reward.max_val)
-
-        self.display_fps = display_fps
 
         self.reset() # sets self.state
     
@@ -93,7 +90,7 @@ class CartPoleEnv:
                 return EpisodeDoneState.FAIL
             
         if self.task_cfg.max_time is not None:
-            if self.curr_step / self.display_fps > self.task_cfg.max_time:
+            if self.curr_step * self.physics_cfg.dt > self.task_cfg.max_time:
                 return EpisodeDoneState.STEPS_EXCEEDED
             
             

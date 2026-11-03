@@ -6,7 +6,7 @@ from .actions import Action
 
 @dataclass(frozen=True)
 class DisplayConfig:
-    fps: int = 30
+    # fps: int = 30
     window_width: int = 600
     window_height: int = 600
 
@@ -23,6 +23,8 @@ class DisplayConfig:
 @dataclass(frozen=True)
 class PhysicsConfig:
     g: float = 3.5
+
+    dt: float = 1/30
 
     # action_magnitude: tuple[tuple[Action, float], ...] = (
     #     (Action.LEFT, -1),
