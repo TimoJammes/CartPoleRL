@@ -24,7 +24,7 @@ class DisplayConfig:
 class PhysicsConfig:
     g: float = 3.5
 
-    dt: float = 1/30
+    dt: float = 1/30 #TODO edit physics update to take dt into account
 
     # action_magnitude: tuple[tuple[Action, float], ...] = (
     #     (Action.LEFT, -1),
@@ -95,7 +95,7 @@ class TaskConfig:
     fail_angle_deg: float | None = 20      # None = never terminate (free play)
     # max_steps: int | None = 1000           # cap on episode length
     max_time: float | None = 5 # seconds
-    num_episodes: int = 1000
+    num_episodes: int = 100
     start_angle_jitter_deg: float = 1.0    # reset() samples upright ± this
 
 @dataclass(frozen=True)
