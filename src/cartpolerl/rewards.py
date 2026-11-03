@@ -26,3 +26,7 @@ def get_reward(physics_cfg: PhysicsConfig, task_cfg: TaskConfig, state: State, a
     return verticality_reward + centrality_reward + omega_reward
 
 reward_obj = Reward(get_reward, 3)
+
+REWARDS: dict[str, Reward] = {
+    "shaped": reward_obj,
+}

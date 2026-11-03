@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 import numpy as np
-from pathlib import Path
 
 from .actions import Action
 
@@ -77,9 +76,6 @@ class BinningConfig:
     
 @dataclass(frozen=True)
 class AgentConfig:
-    save: bool = False
-    save_folder: Path = Path("training_runs") #defined from project root
-
     epsilon: float = 0.1 # for greedy exploration
     alpha: float = 0.1 # LR
     gamma: float = 0.99
@@ -92,6 +88,8 @@ class AgentConfig:
 @dataclass(frozen=True)
 class TaskConfig:
     actions: tuple[Action, ...] = (Action.LEFT, Action.NONE, Action.RIGHT)
+    reward: str = "shaped"          # key in rewards.REWARDS
+    observation: str = "full"       # key in state.OBSERVATIONS
     fail_angle_deg: float | None = 20      # None = never terminate (free play)
     # max_steps: int | None = None #1000           # cap on episode length
     # max_time: float | None = None

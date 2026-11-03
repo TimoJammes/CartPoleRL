@@ -1,10 +1,7 @@
 import numpy as np
 from dataclasses import asdict
 from pathlib import Path
-from datetime import date
 from abc import ABC, abstractmethod
-import csv
-import json
 from typing import Any
 
 from .config import AgentConfig, BinEdgeConfig
@@ -15,102 +12,120 @@ from .actions import Action
 
 class Agent(ABC):
     agent_name: str
-    cfg: AgentConfig
 
     @abstractmethod
-    def act(self, obs: Observation):
+    def act(self, obs: Observation) -> Action:
         ...
 
     @abstractmethod
     def update(self, obs: Observation, action: Action, reward: float, obs_prime: Observation, done: bool):
         ...
 
-    @property
     @abstractmethod
-    def model(self) -> np.ndarray:
+    def save(self, run_dir: Path) -> None:
+        """Write this agent's model into run_dir (the run folder itself is managed by runs.py)."""
         ...
-
-    @property
-    def save_model(self):
-        return self.cfg.save
-    
-    def save(self):
-        potential_path_base = Path(__file__).resolve().parent.parent.parent / self.cfg.save_folder / f"{date.today()}_{self.agent_name}.npy"
-
-        if potential_path_base.exists():
-            ver = 2
-            potential_path = potential_path_base.with_stem(potential_path_base.stem + f"_{ver}")
-
-            while potential_path.exists():
-                ver += 1
-                potential_path = potential_path.with_stem(potential_path_base.stem + f"_{ver}")
-        else:
-            potential_path = potential_path_base
-
-        np.save(potential_path, self.model)
-
-        self.log_run(potential_path.parent, potential_path.stem)
-
-    def log_run(self, save_folder: Path, run_name: str):
-        registry_path = save_folder / "registry.csv"
-        write_header = not registry_path.exists()
-        with open(registry_path, "a", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=["training_run_name", "params"])
-            if write_header:
-                w.writeheader()
-            w.writerow({"training_run_name": run_name, "params": json.dumps(self.params)})
 
     @property
     @abstractmethod
     def params(self) -> dict[str, Any]:
         ...
 
+
+def _compute_edges(cfg: AgentConfig, env_spec: EnvSpec) -> dict[str, np.ndarray]:
+    edges = dict()
+
+    for var in cfg.bin_config.edges:
+        assert env_spec.has_var(var.name)
+
+    for var in env_spec.variables:
+        if cfg.bin_config.has(var.name):
+
+            cfg_var: BinEdgeConfig = cfg.bin_config.get(var.name)
+
+            if cfg_var.n_bins != -1:
+                assert cfg_var.n_bins > 0, "when generating bins from edges, n_bins must be strictly greater than 0."
+                assert len(cfg_var.bin_edges) == 2, "when generating bins from edges, bin_edges must have 2 elements (start and end of edges)"
+                if cfg_var.bin_edges_include_endpoints:
+                    edges[var.name] = np.linspace(cfg_var.bin_edges[0], cfg_var.bin_edges[1], cfg_var.n_bins+1)[1:-1]
+                else:
+                    assert cfg_var.n_bins >= 3, "when generating bins from edges without including endpoints, n_bins must be >= 3 to ensure adequate binning."
+                    edges[var.name] = np.linspace(cfg_var.bin_edges[0], cfg_var.bin_edges[1], cfg_var.n_bins-1)
+            else:
+
+                assert np.all(np.diff(cfg_var.bin_edges) > 0)  #check explicit binning is strictly increasing for proper binning
+                edges[var.name] = np.array(cfg_var.bin_edges)
+
+        elif var.max == np.inf or var.min == -np.inf:
+
+            raise ValueError("An unbounded variable must have an agent config (or implement initial value learning by agent during training)")
+        else:
+            if cfg.default_n_bins < 2:
+                raise ValueError("cfg.default_n_bins must be at least 2 for adequate binning.")
+            edges[var.name] = np.linspace(var.min, var.max, cfg.default_n_bins+1)[1:-1]
+
+    return edges
+
+
 class QLearningTableAgent(Agent):
+    agent_name = "qlearningtable"
+    model_file = "model.npz"
 
-    def __init__(self, cfg: AgentConfig, env_spec: EnvSpec, rng: np.random.Generator):
-
-        self.agent_name = "qlearningtable"
+    def __init__(self, cfg: AgentConfig, actions: tuple[Action, ...], edges: dict[str, np.ndarray], Q: np.ndarray, rng: np.random.Generator):
         self.cfg = cfg
         self.rng = rng
 
-        self.actions = env_spec.actions
-
+        self.actions = actions
         self.action_to_index = {
             a: i for i, a in enumerate(self.actions)
         }
 
-        self.edges = dict()
+        self.edges = edges
 
-        for var in cfg.bin_config.edges:
-            assert env_spec.has_var(var.name)
+        expected_shape = tuple(len(e)+1 for e in self.edges.values()) + (len(self.actions),)
+        if Q.shape != expected_shape:
+            raise ValueError(f"Q-table shape {Q.shape} does not match bins/actions (expected {expected_shape}).")
+        self.Q = Q
 
-        for var in env_spec.variables:
-            if cfg.bin_config.has(var.name):
+    @classmethod
+    def from_spec(cls, cfg: AgentConfig, env_spec: EnvSpec, rng: np.random.Generator) -> "QLearningTableAgent":
+        """New agent: bins from the config + env spec, optimistic Q-table."""
+        edges = _compute_edges(cfg, env_spec)
+        Q = np.full([len(e)+1 for e in edges.values()]+[len(env_spec.actions)], env_spec.max_reward / (1 - cfg.gamma))
+        return cls(cfg, env_spec.actions, edges, Q, rng)
 
-                cfg_var: BinEdgeConfig = cfg.bin_config.get(var.name)
+    @classmethod
+    def load(cls, run_dir: Path, cfg: AgentConfig, env_spec: EnvSpec, rng: np.random.Generator) -> "QLearningTableAgent":
+        """Agent from a saved run: Q-table and edges come from the file, checked against the env spec."""
+        path = Path(run_dir) / cls.model_file
+        if not path.exists():
+            raise FileNotFoundError(f"No model file at {path}.")
 
-                if cfg_var.n_bins != -1:
-                    assert cfg_var.n_bins > 0, "when generating bins from edges, n_bins must be strictly greater than 0."
-                    assert len(cfg_var.bin_edges) == 2, "when generating bins from edges, bin_edges must have 2 elements (start and end of edges)"
-                    if cfg_var.bin_edges_include_endpoints:
-                        self.edges[var.name] = np.linspace(cfg_var.bin_edges[0], cfg_var.bin_edges[1], cfg_var.n_bins+1)[1:-1]
-                    else:
-                        assert cfg_var.n_bins >= 3, "when generating bins from edges without including endpoints, n_bins must be >= 3 to ensure adequate binning."
-                        self.edges[var.name] = np.linspace(cfg_var.bin_edges[0], cfg_var.bin_edges[1], cfg_var.n_bins-1)
-                else:
-                    
-                    assert np.all(np.diff(cfg_var.bin_edges) > 0)  #check explicit binning is strictly increasing for proper binning
-                    self.edges[var.name] = np.array(cfg_var.bin_edges)
+        with np.load(path, allow_pickle=False) as data:
+            var_names = [str(n) for n in data["var_names"]]
+            action_names = [str(n) for n in data["action_names"]]
+            Q = data["Q"]
+            edges = {name: data[f"edges__{name}"] for name in var_names}
 
-            elif var.max == np.inf or var.min == -np.inf:
+        spec_var_names = [v.name for v in env_spec.variables]
+        if var_names != spec_var_names:
+            raise ValueError(f"Saved model variables {var_names} do not match env variables {spec_var_names}.")
 
-                raise ValueError("An unbounded variable must have an agent config (or implement initial value learning by agent during training)")
-            else:
-                if cfg.default_n_bins < 2:
-                    raise ValueError("cfg.default_n_bins must be at least 2 for adequate binning.")
-                self.edges[var.name] = np.linspace(var.min, var.max, cfg.default_n_bins+1)[1:-1]
+        actions = tuple(Action[n] for n in action_names)
+        if actions != env_spec.actions:
+            raise ValueError(f"Saved model actions {action_names} do not match env actions {[a.name for a in env_spec.actions]}.")
 
-        self.Q = np.full([len(edges)+1 for edges in self.edges.values()]+[len(self.actions)], env_spec.max_reward / (1 - cfg.gamma))
+        return cls(cfg, actions, edges, Q, rng)
+
+    def save(self, run_dir: Path) -> None:
+        arrays = {f"edges__{name}": e for name, e in self.edges.items()}
+        np.savez(
+            Path(run_dir) / self.model_file,
+            Q=self.Q,
+            var_names=np.array(list(self.edges.keys())),
+            action_names=np.array([a.name for a in self.actions]),
+            **arrays,
+        )
 
     def act(self, obs: Observation) -> Action:
 
@@ -135,13 +150,9 @@ class QLearningTableAgent(Agent):
 
     def _discretize(self, obs: Observation) -> tuple[int, ...]:
         return tuple(np.digitize(getattr(obs, var_name), self.edges[var_name]) for var_name in self.edges.keys())
-    
+
     def _Qstar(self, obs: Observation):
         return np.max(self.Q[self._discretize(obs)])
-
-    @property
-    def model(self):
-        return self.Q
 
     @property
     def params(self):
@@ -152,5 +163,7 @@ class QLearningTableAgent(Agent):
             "binning": asdict(self.cfg.bin_config)
         }
 
-            
-            
+
+AGENT_TYPES: dict[str, type[Agent]] = {
+    QLearningTableAgent.agent_name: QLearningTableAgent,
+}

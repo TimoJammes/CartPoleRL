@@ -5,6 +5,7 @@ from .actions import Action
 from .agents import Agent
 
 class HumanController(Agent):
+    agent_name = "human"
 
     def __init__(self, env_actions: tuple[Action, ...]):
 
@@ -13,16 +14,8 @@ class HumanController(Agent):
         assert set(env_actions) == set(self.defined_actions), "UI does not define the same human_controller actions as the env accepts."
 
     @property
-    def save_model(self):
-        return False
-
-    @property
-    def model(self):
-        return None
-
-    @property
     def params(self):
-        return None
+        return {}
     
     def act(self, obs: Observation) -> Action:
         return self.get_action()
@@ -43,5 +36,5 @@ class HumanController(Agent):
 
     def update(self, obs: Observation, action: Action, reward: float, obs_prime: Observation, done: bool):
         pass
-    def save(self):
+    def save(self, run_dir):
         pass

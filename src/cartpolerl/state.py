@@ -26,3 +26,7 @@ class FullObservation(Observation):
 @dataclass(frozen=True)
 class PartialObservation(Observation):
     pass
+
+OBSERVATIONS: dict[str, type[Observation]] = {
+    "full": FullObservation,
+}
