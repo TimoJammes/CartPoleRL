@@ -4,6 +4,7 @@ from enum import Enum
 
 from .config import DisplayConfig, PhysicsConfig
 from .env import CartPoleEnv
+from .actions import Action
 
 class InputCommand(Enum):
     QUIT = 0
@@ -12,6 +13,13 @@ class InputCommand(Enum):
 class PygameUI:
 
     def __init__(self, cfg: DisplayConfig, physics_cfg: PhysicsConfig):
+        pygame.init()
+
+        self.font = pygame.font.SysFont(None, 32)
+        self.LEFT_TEXT = self.font.render("LEFT", True, pygame.Color("black")) 
+        self.NONE_TEXT = self.font.render("NONE", True, pygame.Color("black")) 
+        self.RIGHT_TEXT = self.font.render("RIGHT", True, pygame.Color("black")) 
+
         self.cfg = cfg
         # WIDTH, HEIGHT = cfg.window_width, cfg.window_height
         # AREA = (WIDTH, HEIGHT)
@@ -35,12 +43,14 @@ class PygameUI:
     def tick(self):
         self.clock.tick(self.cfg.fps)
 
-    def render(self, env: CartPoleEnv):
+    def render(self, env: CartPoleEnv, action: Action):
 
         self.draw_background()
 
         self.draw_cart(env)
         self.draw_pole(env)
+
+        self.display_action(action)
 
         pygame.display.flip()
 
@@ -66,7 +76,21 @@ class PygameUI:
 
         pygame.draw.line(self.screen, self.cfg.pole_color, base, tip, self.cfg.pole_width)
 
+    def display_action(self, action: Action):
 
+        text_x = 10
+
+        text = self.LEFT_TEXT
+        match action.name:
+            case "NONE":
+                text = self.NONE_TEXT
+                text_x += self.LEFT_TEXT.get_width() + 10
+            case "RIGHT":
+                text = self.RIGHT_TEXT
+                text_x += self.LEFT_TEXT.get_width() + self.NONE_TEXT.get_width() + 20
+
+        self.screen.blit(text, (text_x, 0))
+        
     def _rotate(self, p: tuple, center_p: tuple, theta: float) -> np.ndarray:
         p_array = np.array(p)
         center_p_array = np.array(center_p)

@@ -72,7 +72,7 @@ def main():
             obs = env.reset() if done else obs_prime
 
             if ui is not None:
-                ui.render(env)
+                ui.render(env, action)
 
     except KeyboardInterrupt:
         pass
