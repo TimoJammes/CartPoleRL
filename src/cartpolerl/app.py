@@ -32,6 +32,10 @@ def main():
         cfg = replace(cfg, agent=replace(cfg.agent, epsilon=0.0))
     elif args.epsilon is not None:
         cfg = replace(cfg, agent=replace(cfg.agent, epsilon=args.epsilon))
+    elif args.fail_angle is not None:
+        if args.fail_angle == -1:
+            args.fail_angle = None
+        cfg = replace(cfg, task=replace(cfg.task, fail_angle_deg=args.fail_angle))
 
     env = CartPoleEnv(cfg.physics, cfg.task, env_rng, REWARDS[cfg.task.reward], OBSERVATIONS[cfg.task.observation])
 
@@ -91,6 +95,8 @@ def parse_args():
     parser.add_argument("--load", type=Path, metavar="RUN_DIR", help="continue from (or watch) a saved run")
     parser.add_argument("--watch", action="store_true", help="with --load: show the greedy policy (epsilon=0, no learning, no saving)")
     parser.add_argument("--epsilon", type=float, help="override the agent's exploration rate")
+    parser.add_argument("--fail-angle", type=int, help="override the pendulums's episode-ending angle. -1 for no fail (in deg).")
+
     args = parser.parse_args()
 
     if args.headless and args.human:
