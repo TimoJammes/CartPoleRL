@@ -13,7 +13,7 @@ class Reward:
     fn: RewardFn
     max_val: float
 
-def get_reward(physics_cfg: PhysicsConfig, task_cfg: TaskConfig, state: State, action: Action, next_state: State) -> float:
+def center_vert_slow(physics_cfg: PhysicsConfig, task_cfg: TaskConfig, state: State, action: Action, next_state: State) -> float:
 
     if task_cfg.fail_angle_deg is not None:
         verticality_reward = 1 - abs(next_state.phi) / np.deg2rad(task_cfg.fail_angle_deg)
@@ -25,8 +25,19 @@ def get_reward(physics_cfg: PhysicsConfig, task_cfg: TaskConfig, state: State, a
 
     return verticality_reward + centrality_reward + omega_reward
 
-reward_obj = Reward(get_reward, 3)
+def survive(physics_cfg: PhysicsConfig, task_cfg: TaskConfig, state: State, action: Action, next_state: State) -> float:
+    return 1
+
+def suicide(physics_cfg: PhysicsConfig, task_cfg: TaskConfig, state: State, action: Action, next_state: State) -> float:
+    return -1
+
+
+reward_obj_1 = Reward(center_vert_slow, 3)
+reward_obj_2 = Reward(survive, 1)
+reward_obj_3 = Reward(suicide, -1)
 
 REWARDS: dict[str, Reward] = {
-    "shaped": reward_obj,
+    "shaped": reward_obj_1,
+    "survival": reward_obj_2,
+    "suicide": reward_obj_3
 }
