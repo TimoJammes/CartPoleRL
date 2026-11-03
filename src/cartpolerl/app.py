@@ -57,7 +57,7 @@ def main():
     obs = env.reset()
     episode = 1
     try:
-        while episode <= 10000:
+        while episode <= cfg.task.num_episodes:
             if ui is not None:
                 ui.tick()
 
