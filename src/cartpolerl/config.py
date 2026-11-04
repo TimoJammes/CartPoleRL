@@ -32,12 +32,11 @@ class PhysicsConfig:
     #     (Action.RIGHT, 1)
     # )
 
-    pole_length: int = 200 # px
+    pole_length: int = 200
     pole_friction_coeff: float = 0.005
 
-    track_width: int = 600 # px
+    track_width: int = 600
 
-    # cart_width: int = 100 # px
     cart_acceleration_norm: float = 3
     cart_friction_coeff: float = 0.05
 
@@ -92,11 +91,11 @@ class TaskConfig:
     actions: tuple[Action, ...] = (Action.LEFT, Action.NONE, Action.RIGHT)
     reward: str = "shaped"          # key in rewards.REWARDS
     observation: str = "full"       # key in state.OBSERVATIONS
-    fail_angle_deg: float | None = 20      # None = never terminate (free play)
+    fail_angle_deg: float | None = 45      # None = never terminate (free play)
     # max_steps: int | None = 1000           # cap on episode length
     max_time: float | None = 5 # seconds
-    num_episodes: int = 100
-    start_angle_jitter_deg: float = 1.0    # reset() samples upright ± this
+    num_episodes: int = 10000
+    start_angle_2sigma: float = 1.0    # reset() samples upright from this as a 2sigma normal distribution
 
 @dataclass(frozen=True)
 class Config:

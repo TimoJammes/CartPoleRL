@@ -106,7 +106,9 @@ class CartPoleEnv:
         return (theta + np.pi) % (2 * np.pi) - np.pi
 
     def reset(self):
-        self.state = State(0, 0, self._wrap(np.deg2rad(self.rng.uniform(180-self.task_cfg.start_angle_jitter_deg, 180+self.task_cfg.start_angle_jitter_deg))), 0)
+        # angle_deg = self.rng.uniform(180-self.task_cfg.start_angle_jitter_deg, 180+self.task_cfg.start_angle_jitter_deg)
+        angle_deg = self.rng.normal(180, self.task_cfg.start_angle_2sigma / 2)
+        self.state = State(0, 0, self._wrap(np.deg2rad(angle_deg)), 0)
 
         self.curr_step = 0
 
