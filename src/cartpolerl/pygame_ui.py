@@ -8,7 +8,7 @@ from .actions import Action
 
 class InputCommand(Enum):
     QUIT = 0
-    PAUSE = 1
+    HEADLESS_SWITCH = 1
 
 class PygameUI:
 
@@ -19,6 +19,7 @@ class PygameUI:
         self.LEFT_TEXT = self.font.render("LEFT", True, pygame.Color("black")) 
         self.NONE_TEXT = self.font.render("NONE", True, pygame.Color("black")) 
         self.RIGHT_TEXT = self.font.render("RIGHT", True, pygame.Color("black")) 
+        self.PAUSE_TEXT = self.font.render("RENDER PAUSED", True, pygame.Color("white"))
 
         self.cfg = cfg
         # WIDTH, HEIGHT = cfg.window_width, cfg.window_height
@@ -37,16 +38,19 @@ class PygameUI:
             if event.type == pygame.QUIT:
                 events.add(InputCommand.QUIT)
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    events.add(InputCommand.PAUSE)
+                if event.key == pygame.K_ESCAPE:
+                    events.add(InputCommand.HEADLESS_SWITCH)
 
         return events
     
     def tick(self):
         self.clock.tick(self.fps)
 
-    def render(self, env: CartPoleEnv, action: Action):
+    def render(self, env: CartPoleEnv, action: Action, do_render: bool):
 
+        if not do_render:
+            return
+        
         self.draw_background()
 
         self.draw_cart(env)
@@ -92,6 +96,19 @@ class PygameUI:
                 text_x += self.LEFT_TEXT.get_width() + self.NONE_TEXT.get_width() + 20
 
         self.screen.blit(text, (text_x, 0))
+
+    def draw_pause_screen(self):
+        
+        pygame.draw.rect(self.screen, pygame.Color("black"),
+                         pygame.Rect(self.cfg.window_width // 2 - self.PAUSE_TEXT.get_width(),
+                         self.cfg.window_height // 2 - self.PAUSE_TEXT.get_height(), self.PAUSE_TEXT.get_width() * 2,
+                         self.PAUSE_TEXT.get_height() * 2))
+        
+        self.screen.blit(self.PAUSE_TEXT,
+                          (self.cfg.window_width // 2 - self.PAUSE_TEXT.get_width() // 2, 
+                           self.cfg.window_height // 2 - self.PAUSE_TEXT.get_height() //2))
+
+        pygame.display.flip()
         
     def _rotate(self, p: tuple, center_p: tuple, theta: float) -> np.ndarray:
         p_array = np.array(p)

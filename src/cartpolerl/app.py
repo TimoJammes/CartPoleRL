@@ -52,19 +52,24 @@ def main():
     learning = not (args.watch or args.human)
 
     ui = None if args.headless else PygameUI(cfg.display, cfg.physics)
-
+    do_render = not(args.headless)
 
     obs = env.reset()
     episode = 1
     try:
         while episode <= cfg.task.num_episodes:
             if ui is not None:
-                ui.tick()
 
                 event_commands: set[InputCommand] = ui.process_events()
                 if InputCommand.QUIT in event_commands:
                     break
 
+                if InputCommand.HEADLESS_SWITCH in event_commands:
+                    do_render = not(do_render)
+                    ui.draw_pause_screen()
+
+                if do_render:
+                    ui.tick()
             
             action = agent.act(obs)
             obs_prime, reward, done = env.step(action)
@@ -88,10 +93,18 @@ def main():
                 
 
             if ui is not None:
-                ui.render(env, action)
+                ui.render(env, action, do_render)
 
     except KeyboardInterrupt:
-        pass
+
+        if args.save:
+            ans = ""
+            while ans != "y" and ans != "n":
+                ans = input("Cancelled training. Would you still like to save? (y/n) ")
+
+            if ans == "n":
+                args.save = False
+
     finally:
         if ui is not None:
             ui.quit()
