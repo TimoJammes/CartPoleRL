@@ -3,7 +3,7 @@ import pygame
 from .state import Observation
 from .actions import Action
 from .agents import Agent
-from .done import EpisodeDoneState
+from .episode_end_state import EpisodeEndState
 
 class HumanController(Agent):
     agent_name = "human"
@@ -35,7 +35,7 @@ class HumanController(Agent):
 
         return Action.NONE
 
-    def update(self, obs: Observation, action: Action, reward: float, obs_prime: Observation, done: EpisodeDoneState):
+    def update(self, obs: Observation, action: Action, reward: float, obs_prime: Observation, done: EpisodeEndState):
         pass
     def save(self, run_dir):
         pass

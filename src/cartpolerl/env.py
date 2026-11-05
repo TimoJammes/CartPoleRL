@@ -5,7 +5,7 @@ from .config import TaskConfig, PhysicsConfig
 from .actions import Action
 from .rewards import Reward
 from .state import State, Observation, FullObservation
-from .done import EpisodeDoneState
+from .episode_end_state import EpisodeEndState
 @dataclass(frozen=True)
 class VarInfo:
     name: str
@@ -52,7 +52,7 @@ class CartPoleEnv:
         self.reset() # sets self.state
     
     
-    def step(self, action: Action) -> tuple[Observation, float, EpisodeDoneState]: #state, reward, done
+    def step(self, action: Action) -> tuple[Observation, float, EpisodeEndState]: #state, reward, done
 
         next_state = State(self.state.x, self.state.vel, self.state.theta, self.state.omega)
 
@@ -84,18 +84,18 @@ class CartPoleEnv:
 
         return self.get_obs(self.state), reward, self.is_done()
 
-    def is_done(self) -> EpisodeDoneState:
+    def is_done(self) -> EpisodeEndState:
 
         if self.task_cfg.fail_angle_deg is not None:
             if np.rad2deg(abs(self.state.phi)) > self.task_cfg.fail_angle_deg:
-                return EpisodeDoneState.FAIL
+                return EpisodeEndState.FAIL
             
         if self.task_cfg.max_time is not None:
             if self.curr_step * self.physics_cfg.dt > self.task_cfg.max_time:
-                return EpisodeDoneState.STEPS_EXCEEDED
+                return EpisodeEndState.STEPS_EXCEEDED
             
             
-        return EpisodeDoneState.NONE
+        return EpisodeEndState.NONE
 
     def get_obs(self, state: State | None = None) -> Observation:
         if state is None:
@@ -107,7 +107,7 @@ class CartPoleEnv:
 
     def reset(self):
         # angle_deg = self.rng.uniform(180-self.task_cfg.start_angle_jitter_deg, 180+self.task_cfg.start_angle_jitter_deg)
-        angle_deg = self.rng.normal(180, self.task_cfg.start_angle_2sigma / 2)
+        angle_deg = self.rng.normal(self.task_cfg.start_mean_theta_deg, self.task_cfg.start_angle_2sigma / 2)
         self.state = State(0, 0, self._wrap(np.deg2rad(angle_deg)), 0)
 
         self.curr_step = 0
