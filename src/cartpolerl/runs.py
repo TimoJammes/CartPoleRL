@@ -101,14 +101,14 @@ def create_run_dir(base: Path, agent_name: str) -> Path:
 
 
 def save_run(run_dir: Path, cfg: Config, spec: EnvSpec, agent: Agent,# num_episodes: int,
-             rngs: dict[str, np.random.Generator], episode_end_states: list[EpisodeEndState], parent_run: str | None = None) -> None:
+             rngs: dict[str, np.random.Generator], episode_stats: list[dict[str, Any]], parent_run: str | None = None) -> None:
     run_dir = Path(run_dir)
 
     agent.save(run_dir)
     _write_json(run_dir / CONFIG_FILE, asdict(cfg))
     _write_json(run_dir / SPEC_FILE, asdict(spec))
     _write_json(run_dir / RNG_FILE, {name: rng.bit_generator.state for name, rng in rngs.items()})
-    _write_json(run_dir / STATS_FILE, episode_end_states)
+    _write_json(run_dir / STATS_FILE, episode_stats)
     # _write_json(run_dir / STATS_FILE, {"num_episodes": num_episodes})
     meta = {
         "format_version": FORMAT_VERSION,

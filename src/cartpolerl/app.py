@@ -90,7 +90,7 @@ def main():
             obs = obs_prime
 
             if episode_end_state != EpisodeEndState.NONE:
-
+                
                 episode_stats.append(runs._to_stats(episode_num, env.curr_step, episode_end_state, agent_wrapper.episode_rewards))
 
                 obs = env.reset()
@@ -117,8 +117,9 @@ def main():
     finally:
         if ui is not None:
             ui.quit()
-
+        
         if args.save:
+            
             run_dir = runs.create_run_dir(args.run_dir, agent.agent_name)
             runs.save_run(run_dir, cfg, env.spec, agent,# episode,
                            {"env": env_rng, "agent": agent_rng}, episode_stats,
