@@ -16,7 +16,6 @@ class VarInfo:
 class EnvSpec:
     variables: tuple[VarInfo, ...]
     actions: tuple[Action, ...]
-    max_reward: float
     dt: float
 
     def has_var(self, name: str) -> bool:
@@ -47,7 +46,7 @@ class CartPoleEnv:
         for f_name in self._obs_names:
             assert f_name in self.var_to_bounds.keys(), f"variable {f_name} missing from var_to_bounds table in env constructor."
 
-        self.spec = EnvSpec(tuple(VarInfo(f_name, *self.var_to_bounds[f_name]) for f_name in self._obs_names), task_cfg.actions, reward.max_val, physics_cfg.dt)
+        self.spec = EnvSpec(tuple(VarInfo(f_name, *self.var_to_bounds[f_name]) for f_name in self._obs_names), task_cfg.actions, physics_cfg.dt)
 
         self.reset() # sets self.state
     

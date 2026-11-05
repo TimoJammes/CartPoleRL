@@ -105,7 +105,7 @@ class QLearningTableAgent(Agent):
     def from_spec(cls, cfg: AgentConfig, env_spec: EnvSpec, rng: np.random.Generator) -> "QLearningTableAgent":
         """New agent: bins from the config + env spec, optimistic Q-table."""
         edges = _compute_edges(cfg, env_spec)
-        Q = np.full([len(e)+1 for e in edges.values()]+[len(env_spec.actions)], env_spec.max_reward / (1 - cfg.gamma))
+        Q = np.full([len(e)+1 for e in edges.values()]+[len(env_spec.actions)], 1 / (1 - cfg.gamma))
         return cls(cfg, env_spec.dt, env_spec.actions, edges, Q, rng)
 
     @classmethod
