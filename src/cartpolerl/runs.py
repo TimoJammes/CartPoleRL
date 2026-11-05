@@ -108,7 +108,7 @@ def save_run(run_dir: Path, cfg: Config, spec: EnvSpec, agent: Agent,# num_episo
     _write_json(run_dir / CONFIG_FILE, asdict(cfg))
     _write_json(run_dir / SPEC_FILE, asdict(spec))
     _write_json(run_dir / RNG_FILE, {name: rng.bit_generator.state for name, rng in rngs.items()})
-    _write_json(run_dir / STATS_FILE, episode_stats)
+    _write_json(run_dir / STATS_FILE, {"n_episodes": len(episode_stats), "episode_stats": episode_stats})
     # _write_json(run_dir / STATS_FILE, {"num_episodes": num_episodes})
     meta = {
         "format_version": FORMAT_VERSION,
