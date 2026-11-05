@@ -91,7 +91,7 @@ def main():
 
             if episode_end_state != EpisodeEndState.NONE:
                 
-                episode_stats.append(runs._to_stats(episode_num, env.curr_step, episode_end_state, agent_wrapper.episode_rewards))
+                episode_stats.append(runs._to_stats(episode_num, env.curr_step, episode_end_state, agent_wrapper.episode_rewards[:]))
 
                 obs = env.reset()
                 agent_wrapper.episode_reset()
