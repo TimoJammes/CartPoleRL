@@ -120,7 +120,7 @@ def main():
         
         if args.save:
             
-            run_dir = runs.create_run_dir(args.run_dir, agent.agent_name)
+            run_dir = runs.create_run_dir(args.run_dir, agent.agent_name, args.name)
             runs.save_run(run_dir, cfg, env.spec, agent,# episode,
                            {"env": env_rng, "agent": agent_rng}, episode_stats,
                           parent_run=loaded.path.name if loaded is not None else None)
@@ -137,6 +137,7 @@ def parse_args():
     parser.add_argument("--epsilon", type=float, help="override the agent's exploration rate")
     parser.add_argument("--fail-angle", type=int, help="override the pendulums's episode-ending angle. -1 for no fail (in deg).")
     parser.add_argument("--episodes", type=int, help="override the simulation's # of episodes.")
+    parser.add_argument("--name", type=str, help="override the run's save name.")
 
     args = parser.parse_args()
 
@@ -150,6 +151,8 @@ def parse_args():
         parser.error("--load cannot be combined with --human.")
     if args.human and args.save:
         parser.error("--human has no model to save.")
+    if args.name and args.save is None:
+        parser.error("--name cannot be used without --save.")
 
     return args
 

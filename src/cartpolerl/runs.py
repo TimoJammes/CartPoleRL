@@ -16,6 +16,7 @@ from datetime import date, datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
+import shutil
 
 import dacite
 import numpy as np
@@ -86,13 +87,39 @@ def _git_commit() -> str | None:
         return None
 
 
-def create_run_dir(base: Path, agent_name: str) -> Path:
-    """Create and return a new, unique run folder: <base>/<date>_<agent_name>_<n>."""
+def create_run_dir(base: Path, agent_name: str, save_name: str | None = None) -> Path:
+    """Create and return a new, unique run folder: <base>/<date>_<agent_name>_<n>.
+        If save_name is not None (overridden by user via --name CLI flag, 
+        run folder is <base>/<save_name>_<n>, where _<n> is ignored if the path doesn't
+        exist yet.
+        """
     base = Path(base)
     base.mkdir(parents=True, exist_ok=True)
+    
     n = 1
+    run_dir_base = base / f"{date.today()}_{agent_name}"
+    
+    if save_name is not None:
+        run_dir_base = base / save_name
+        
+        if run_dir_base.exists():
+            ans = ""
+            while ans != "y" and ans != "n":
+                ans = input("User-inputted run save path already exists. Override (y) or append _n (n)? ")
+            
+            if ans == "y":
+                shutil.rmtree(run_dir_base)
+                run_dir_base.mkdir()
+                return run_dir_base
+    
+            n+= 1
+        else:
+            run_dir_base.mkdir()
+            return run_dir_base
+            
     while True:
-        run_dir = base / f"{date.today()}_{agent_name}_{n}"
+        # run_dir = base / f"{date.today()}_{agent_name}_{n}"
+        run_dir = base / f"{run_dir_base.name}_{n}"
         try:
             run_dir.mkdir()
             return run_dir
