@@ -11,7 +11,8 @@ from .agents import Agent, QLearningTableAgent
 from .pygame_ui import PygameUI, InputCommand
 from .human_controller import HumanController
 from . import runs
-from .done import EpisodeDoneState
+from .episode_end_state import EpisodeEndState
+from .agent_wrapper import AppAgentWrapper
 
 def main():
     args = parse_args()
@@ -37,10 +38,12 @@ def main():
         if args.fail_angle == -1:
             args.fail_angle = None
         cfg = replace(cfg, task=replace(cfg.task, fail_angle_deg=args.fail_angle))
+    if args.episodes is not None:
+        assert args.episodes > 0
+        cfg = replace(cfg, task=replace(cfg.task, num_episodes=args.episodes))
 
     env = CartPoleEnv(cfg.physics, cfg.task, env_rng, REWARDS[cfg.task.reward], OBSERVATIONS[cfg.task.observation])
-
-    agent: Agent
+    
     if args.human:
         agent = HumanController(cfg.task.actions)
     elif loaded is not None:
@@ -49,15 +52,19 @@ def main():
     else:
         agent = QLearningTableAgent.from_spec(cfg.agent, env.spec, agent_rng)
 
+    agent_wrapper = AppAgentWrapper(cfg.agent.min_decision_interval_s, cfg.physics.dt)
+
     learning = not (args.watch or args.human)
 
     ui = None if args.headless else PygameUI(cfg.display, cfg.physics)
     do_render = not(args.headless)
 
+    episode_stats = list()
+
     obs = env.reset()
-    episode = 1
+    episode_num = 1
     try:
-        while episode <= cfg.task.num_episodes:
+        while episode_num <= cfg.task.num_episodes:
             if ui is not None:
 
                 event_commands: set[InputCommand] = ui.process_events()
@@ -71,25 +78,27 @@ def main():
                 if do_render:
                     ui.tick()
             
-            action = agent.act(obs)
-            obs_prime, reward, done = env.step(action)
+            action = agent_wrapper.act(agent, obs)
+            obs_prime, reward, episode_end_state = env.step(action)
 
-            if done == EpisodeDoneState.STEPS_EXCEEDED and args.watch:
-                done = EpisodeDoneState.NONE
+            if episode_end_state == EpisodeEndState.STEPS_EXCEEDED and args.watch:
+                episode_end_state = EpisodeEndState.NONE
 
             if learning:
-                agent.update(obs, action, reward, obs_prime, done)
+                agent_wrapper.update(agent, obs, action, reward, obs_prime, episode_end_state)
 
             obs = obs_prime
 
-            if done != EpisodeDoneState.NONE:
-                episode += 1
-                if episode % 100 == 0:
-                    print(episode)
+            if episode_end_state != EpisodeEndState.NONE:
+
+                episode_stats.append(runs._to_stats(episode_num, env.curr_step, episode_end_state, agent_wrapper.episode_rewards))
 
                 obs = env.reset()
-                agent.episode_reset()
+                agent_wrapper.episode_reset()
                 
+                episode_num += 1
+                if episode_num % 100 == 0:
+                    print(episode_num)
                 
 
             if ui is not None:
@@ -112,7 +121,7 @@ def main():
         if args.save:
             run_dir = runs.create_run_dir(args.run_dir, agent.agent_name)
             runs.save_run(run_dir, cfg, env.spec, agent,# episode,
-                           {"env": env_rng, "agent": agent_rng},
+                           {"env": env_rng, "agent": agent_rng}, episode_stats,
                           parent_run=loaded.path.name if loaded is not None else None)
             print(f"Saved run to {run_dir}")
 
@@ -126,6 +135,7 @@ def parse_args():
     parser.add_argument("--watch", action="store_true", help="with --load: show the greedy policy (epsilon=0, no learning, no saving)")
     parser.add_argument("--epsilon", type=float, help="override the agent's exploration rate")
     parser.add_argument("--fail-angle", type=int, help="override the pendulums's episode-ending angle. -1 for no fail (in deg).")
+    parser.add_argument("--episodes", type=int, help="override the simulation's # of episodes.")
 
     args = parser.parse_args()
 

@@ -8,7 +8,7 @@ from .config import AgentConfig, BinEdgeConfig
 from .env import EnvSpec
 from .state import Observation
 from .actions import Action
-from .done import EpisodeDoneState
+from .episode_end_state import EpisodeEndState
 
 class Agent(ABC):
     agent_name: str
@@ -18,7 +18,7 @@ class Agent(ABC):
         ...
 
     @abstractmethod
-    def update(self, obs: Observation, action: Action, reward: float, obs_prime: Observation, done: bool):
+    def update(self, obs: Observation, action: Action, rewards: list[float], obs_prime: Observation, done: EpisodeEndState):
         ...
 
     @abstractmethod
@@ -31,9 +31,9 @@ class Agent(ABC):
     def params(self) -> dict[str, Any]:
         ...
 
-    @abstractmethod
-    def episode_reset(self) -> None:
-        ...
+    # @abstractmethod
+    # def episode_reset(self) -> None:
+    #     ...
 
 def _compute_edges(cfg: AgentConfig, env_spec: EnvSpec) -> dict[str, np.ndarray]:
     edges = dict()
@@ -91,13 +91,13 @@ class QLearningTableAgent(Agent):
             raise ValueError(f"Q-table shape {Q.shape} does not match bins/actions (expected {expected_shape}).")
         self.Q = Q
 
-        self.last_action = Action.NONE
-        self.obs_at_last_action: Observation
+        # self.last_action = Action.NONE
+        # self.obs_at_last_action: Observation
 
-        self.min_decision_interval_steps = int(np.ceil(self.cfg.min_decision_interval_s / dt - 1e-9))
-        self.steps_since_action = self.min_decision_interval_steps
+        # self.min_decision_interval_steps = int(np.ceil(self.cfg.min_decision_interval_s / dt - 1e-9))
+        # self.steps_since_action = self.min_decision_interval_steps
         
-        self.rewards_since_action = list()
+        # self.rewards_since_action = list()
 
         
 
@@ -138,14 +138,14 @@ class QLearningTableAgent(Agent):
             Q=self.Q,
             var_names=np.array(list(self.edges.keys())),
             action_names=np.array([a.name for a in self.actions]),
-            **arrays,
+            **arrays, #type: ignore
         )
 
     def act(self, obs: Observation) -> Action:
 
-        if self.steps_since_action < self.min_decision_interval_steps:
-            self.steps_since_action += 1
-            return self.last_action
+        # if self.steps_since_action < self.min_decision_interval_steps:
+        #     self.steps_since_action += 1
+        #     return self.last_action
         
         obs_discretized = self._discretize(obs)
 
@@ -157,37 +157,29 @@ class QLearningTableAgent(Agent):
             action_num = self.rng.choice(np.flatnonzero(q == q.max()))
 
 
-        self.last_action = self.actions[action_num]
-        self.steps_since_action = 1
+        # self.last_action = self.actions[action_num]
+        # self.steps_since_action = 1
 
-        self.obs_at_last_action = obs
+        # self.obs_at_last_action = obs
 
-        return self.last_action
+        # return self.last_action
 
-    def update(self, obs: Observation, action: Action, reward: float, obs_prime: Observation, done: EpisodeDoneState):
+        return self.actions[action_num]
+    
+    def update(self, obs: Observation, action: Action, rewards: list[float], obs_prime: Observation, done: EpisodeEndState):
 
-        self.rewards_since_action.append(reward)
-        if done == EpisodeDoneState.NONE and self.steps_since_action < self.min_decision_interval_steps:
-            return
+        target = sum(r * self.cfg.gamma**k for k, r in enumerate(rewards))
 
+        # target = 0
+        # for k, saved_reward in enumerate(self.rewards_since_action):
+        #     target += saved_reward * self.cfg.gamma ** k
+        if done != EpisodeEndState.FAIL: #bootstrap
+            target += self.cfg.gamma ** len(rewards) * self._Qstar(obs_prime)
 
-        obs = self.obs_at_last_action
-
-        
-        obs_discretized = self._discretize(obs)
-
-        target = 0
-        for k, saved_reward in enumerate(self.rewards_since_action):
-            target += saved_reward * self.cfg.gamma ** k
-        if done != EpisodeDoneState.FAIL: #bootstrap
-            target += self.cfg.gamma ** len(self.rewards_since_action) * self._Qstar(obs_prime)
-
-        # target = reward if done == EpisodeDoneState.FAIL else reward + self.cfg.gamma * self._Qstar(obs_prime)
-        action_index = self.action_to_index[action]
-        idx = obs_discretized + (action_index,)
+        idx = self._discretize(obs) + (self.action_to_index[action],)
         self.Q[idx] += self.cfg.alpha * (target - self.Q[idx])
 
-        self.rewards_since_action.clear()
+        # self.rewards_since_action.clear()
 
     def _discretize(self, obs: Observation) -> tuple[int, ...]:
         return tuple(np.digitize(getattr(obs, var_name), self.edges[var_name]) for var_name in self.edges.keys())
@@ -195,9 +187,9 @@ class QLearningTableAgent(Agent):
     def _Qstar(self, obs: Observation):
         return np.max(self.Q[self._discretize(obs)])
 
-    def episode_reset(self):
-        self.steps_since_action = self.min_decision_interval_steps
-        self.rewards_since_action.clear()
+    # def episode_reset(self):
+    #     self.steps_since_action = self.min_decision_interval_steps
+    #     self.rewards_since_action.clear()
 
     @property
     def params(self):
