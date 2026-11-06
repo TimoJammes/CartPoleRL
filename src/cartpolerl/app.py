@@ -17,8 +17,6 @@ from .episode_end_state import EpisodeEndState
 from .agent_wrapper import AppAgentWrapper
 
 def main():
-    
-    
     args = parse_args()
 
     loaded = runs.load_run(args.load) if args.load else None
@@ -108,7 +106,7 @@ def main():
                 
 
             if ui is not None:
-                ui.render(env, action, do_render)
+                ui.render(env, action, episode_num, do_render)
                 
                 if args.gif and len(gif_frames) < num_gif_frames:
                     frame = pygame.surfarray.array3d(ui.screen)       # shape (w, h, 3)
@@ -144,7 +142,7 @@ def main():
             Path("assets").mkdir(exist_ok=True)
             imageio.mimsave(f"assets/{args.gif_name}.gif", gif_frames, duration=1000 * cfg.physics.dt, loop=0)
             print(f"Gif saved to assets/{args.gif_name}.gif")
-
+        
 def parse_args():
     parser = argparse.ArgumentParser(description="Train a Q-learning agent")
     parser.add_argument("--headless", action="store_true", help="run training without the GUI (faster)")
@@ -185,4 +183,6 @@ def parse_args():
     return args
 
 if __name__ == "__main__":
+    
     main()
+    

@@ -15,12 +15,6 @@ class PygameUI:
     def __init__(self, cfg: DisplayConfig, physics_cfg: PhysicsConfig):
         pygame.init()
 
-        self.font = pygame.font.SysFont(None, 32)
-        self.LEFT_TEXT = self.font.render("LEFT", True, pygame.Color("black")) 
-        self.NONE_TEXT = self.font.render("NONE", True, pygame.Color("black")) 
-        self.RIGHT_TEXT = self.font.render("RIGHT", True, pygame.Color("black")) 
-        self.PAUSE_TEXT = self.font.render("RENDER PAUSED", True, pygame.Color("white"))
-
         self.cfg = cfg
         # WIDTH, HEIGHT = cfg.window_width, cfg.window_height
         # AREA = (WIDTH, HEIGHT)
@@ -30,6 +24,20 @@ class PygameUI:
         self.to_screen_scaling = (self.cfg.window_width - self.cfg.cart_width) / physics_cfg.track_width
 
         self.fps = round(1 / physics_cfg.dt)
+        
+        
+        self.font = pygame.font.SysFont(None, 32)
+        self.LEFT_TEXT = self.font.render("LEFT", False, pygame.Color("black")) 
+        self.NONE_TEXT = self.font.render("NONE", False, pygame.Color("black")) 
+        self.RIGHT_TEXT = self.font.render("RIGHT", False, pygame.Color("black")) 
+        self.PAUSE_TEXT = self.font.render("RENDER PAUSED", False, pygame.Color("white"))
+        self.EPISODE_TEXT = self.font.render("EPISODE: ", False, pygame.Color("black"))
+        self.max_episode_num_text_width = self.font.render("999999", False, pygame.Color("black")).get_width()
+        
+        self.episode_num_background_rect = pygame.Rect(self.cfg.window_width-self.EPISODE_TEXT.get_width()-self.max_episode_num_text_width,
+                                                       0,
+                                                       self.EPISODE_TEXT.get_width()+self.max_episode_num_text_width,
+                                                       self.EPISODE_TEXT.get_height())
             
     def process_events(self) -> set[InputCommand]:
         events = set()
@@ -46,18 +54,26 @@ class PygameUI:
     def tick(self):
         self.clock.tick(self.fps)
 
-    def render(self, env: CartPoleEnv, action: Action, do_render: bool):
+    def render(self, env: CartPoleEnv, action: Action, episode_num: int, do_render: bool):
 
         if not do_render:
+            
+            if episode_num % 50 == 0:
+                pygame.draw.rect(self.screen, self.cfg.background_color,
+                                self.episode_num_background_rect)
+                self.display_episode_num(episode_num)
+                pygame.display.flip()
             return
-        
+            
         self.draw_background()
+        
 
         self.draw_cart(env)
         self.draw_pole(env)
 
         self.display_action(action)
-
+        self.display_episode_num(episode_num)
+        
         pygame.display.flip()
 
     def draw_background(self):
@@ -97,6 +113,12 @@ class PygameUI:
 
         self.screen.blit(text, (text_x, 0))
 
+    def display_episode_num(self, episode_num: int):
+        text = self.font.render(str(episode_num), False, pygame.Color("black"))
+        
+        self.screen.blit(self.EPISODE_TEXT, (self.cfg.window_width - text.get_width() - self.EPISODE_TEXT.get_width(), 0))
+        self.screen.blit(text, (self.cfg.window_width - text.get_width(), 0))
+        
     def draw_pause_screen(self):
         
         pygame.draw.rect(self.screen, pygame.Color("black"),
