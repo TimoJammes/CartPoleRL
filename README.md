@@ -7,7 +7,7 @@
 </table>
 </div>
 
-Custom "OpenAI gym"-like environment and agent creation platform for RL training.  
+Custom "OpenAI gym"-inspired environment and agent creation platform for RL training.  
 Currently supports a cart-pole environment with a Q-Learning (Q Table) agent.
 
 Python Version: 3.14  
