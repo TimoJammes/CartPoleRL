@@ -2,7 +2,7 @@
 <div align="center">
 <table>
   <tr>
-    <td><img src="assets/demo.gif" width="600" alt="training"></td>
+    <td><img src="assets/demo.gif" width="400" alt="training"></td>
   </tr>
 </table>
 </div>
