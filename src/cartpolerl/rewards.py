@@ -38,18 +38,18 @@ def center_vert(physics_cfg: PhysicsConfig, task_cfg: TaskConfig, state: State, 
 def survive(physics_cfg: PhysicsConfig, task_cfg: TaskConfig, state: State, action: Action, next_state: State) -> float:
     return 1
 
-def suicide(physics_cfg: PhysicsConfig, task_cfg: TaskConfig, state: State, action: Action, next_state: State) -> float:
-    return -1
+# def suicide(physics_cfg: PhysicsConfig, task_cfg: TaskConfig, state: State, action: Action, next_state: State) -> float:
+#     return -1
 
 
 reward_obj_1 = Reward(center_vert_slow)#, 3)
 reward_obj_2 = Reward(survive)#, 1)
-reward_obj_3 = Reward(suicide)#, -1)
+# reward_obj_3 = Reward(suicide)#, -1)
 reward_obj_4 = Reward(center_vert)#, 2)
 
 REWARDS: dict[str, Reward] = {
     "shaped": reward_obj_1,
     "shaped_no_omega": reward_obj_4,
     "survival": reward_obj_2,
-    "suicide": reward_obj_3
+    # "suicide": reward_obj_3
 }
