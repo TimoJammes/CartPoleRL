@@ -37,7 +37,7 @@ class CartPoleEnv:
 
         # defines all observable variables and their exact bounds
         self.var_to_bounds = {
-            "x": (-self.physics_cfg.track_width/2, self.physics_cfg.track_width/2),
+            "x": (-self.physics_cfg.track_length/2, self.physics_cfg.track_length/2),
             "vel": (-np.inf, np.inf),
             "phi": (-np.deg2rad(self.task_cfg.fail_angle_deg) if self.task_cfg.fail_angle_deg is not None else -np.inf, np.deg2rad(self.task_cfg.fail_angle_deg) if self.task_cfg.fail_angle_deg is not None else np.inf), #exceeds bounds at last step of episode (if the pole falls)
             "omega": (-np.inf, np.inf)
@@ -61,8 +61,8 @@ class CartPoleEnv:
     
         next_state.x += next_state.vel
     
-        if abs(next_state.x) > self.physics_cfg.track_width / 2:
-            next_state.x = self.physics_cfg.track_width / 2 * np.sign(next_state.x)
+        if abs(next_state.x) > self.physics_cfg.track_length / 2:
+            next_state.x = self.physics_cfg.track_length / 2 * np.sign(next_state.x)
             next_state.vel = 0
             cart_acceleration = 0
         

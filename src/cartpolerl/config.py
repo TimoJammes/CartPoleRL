@@ -11,14 +11,18 @@ class DisplayConfig:
     window_height: int = 600
 
     background_color: tuple[int, int, int] = (255, 255, 255)
+    track_color: tuple[int, int, int] = (123, 63, 0) #chocolate
     pole_color: tuple[int, int, int] = (255, 0, 0)
-    cart_color: tuple[int, int, int] = (0, 0, 0)
+    cart_body_color: tuple[int, int, int] = (0, 0, 0)
+    cart_wheel_color: tuple[int, int, int] = (169, 169, 169)
 
-    cart_width: int = 100
-    cart_height: int = 50
-    pole_width: int = 10
+    cart_width: int = 50
+    cart_height: int = 25
+    cart_wheel_radius: int = 12
+    pole_width: int = 5
 
     track_y: int = 300
+    track_thickness: int = 5
 
 @dataclass(frozen=True)
 class PhysicsConfig:
@@ -35,7 +39,7 @@ class PhysicsConfig:
     pole_length: int = 200
     pole_friction_coeff: float = 0.005
 
-    track_width: int = 600
+    track_length: int = 1200
 
     cart_acceleration_norm: float = 3
     cart_friction_coeff: float = 0.05
@@ -83,19 +87,20 @@ class AgentConfig:
 
     bin_config: BinningConfig = field(default_factory=BinningConfig)
     default_n_bins: int = 7
-    min_decision_interval_s: float = 0.1 #seconds, simulation clock (rounds up to nearest #steps) 
+    min_decision_interval_s: float = 0. #seconds, simulation clock (rounds up to nearest #steps) 
     
 
 @dataclass(frozen=True)
 class TaskConfig:
     actions: tuple[Action, ...] = (Action.LEFT, Action.NONE, Action.RIGHT)
-    reward: str = "shaped"          # key in rewards.REWARDS
+    reward: str = "shaped_no_omega"          # key in rewards.REWARDS
     observation: str = "full"       # key in state.OBSERVATIONS
-    fail_angle_deg: float | None = 45      # None = never terminate (free play)
+    fail_angle_deg: float | None = 30      # None = never terminate (free play)
     # max_steps: int | None = 1000           # cap on episode length
     max_time: float | None = 5 # seconds
     num_episodes: int = 10000
-    start_angle_2sigma: float = 1.0    # reset() samples upright from this as a 2sigma normal distribution
+    start_angle_2sigma: float = 1    # reset() samples upright from this as a 2sigma normal distribution
+    start_mean_theta_deg: float = 180 #180
 
 @dataclass(frozen=True)
 class Config:

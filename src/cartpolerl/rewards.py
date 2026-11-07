@@ -20,7 +20,7 @@ def center_vert_slow(physics_cfg: PhysicsConfig, task_cfg: TaskConfig, state: St
     else:
         verticality_reward = 1 - abs(next_state.phi) / np.deg2rad(180)
 
-    centrality_reward = (physics_cfg.track_width // 2 - abs(next_state.x)) / (physics_cfg.track_width // 2) 
+    centrality_reward = (physics_cfg.track_length // 2 - abs(next_state.x)) / (physics_cfg.track_length // 2) 
     omega_reward = np.clip((0.1 - abs(next_state.omega)) * 10, 0, 1)
 
     return (verticality_reward + centrality_reward + omega_reward) / 3
@@ -31,7 +31,7 @@ def center_vert(physics_cfg: PhysicsConfig, task_cfg: TaskConfig, state: State, 
     else:
         verticality_reward = 1 - abs(next_state.phi) / np.deg2rad(180)
 
-    centrality_reward = (physics_cfg.track_width // 2 - abs(next_state.x)) / (physics_cfg.track_width // 2) 
+    centrality_reward = (physics_cfg.track_length // 2 - abs(next_state.x)) / (physics_cfg.track_length // 2) 
 
     return (verticality_reward + centrality_reward) / 2
 

@@ -21,7 +21,7 @@ class PygameUI:
         self.screen = pygame.display.set_mode((self.cfg.window_width, self.cfg.window_height))
         self.clock = pygame.time.Clock()
 
-        self.to_screen_scaling = (self.cfg.window_width - self.cfg.cart_width) / physics_cfg.track_width
+        self.to_screen_scaling = (self.cfg.window_width - self.cfg.cart_width) / physics_cfg.track_length
 
         self.fps = round(1 / physics_cfg.dt)
         
@@ -67,8 +67,8 @@ class PygameUI:
             
         self.draw_background()
         
-
         self.draw_cart(env)
+        self.draw_track(env)
         self.draw_pole(env)
 
         self.display_action(action)
@@ -79,10 +79,35 @@ class PygameUI:
     def draw_background(self):
         self.screen.fill(self.cfg.background_color)
 
+    def draw_track(self, env: CartPoleEnv):
+        screen_x_left, screen_y_left = self.world_to_screen(-env.physics_cfg.track_length//2, 0)
+        screen_x_right, screen_y_right = self.world_to_screen(env.physics_cfg.track_length//2, 0)
+        
+        pygame.draw.line(self.screen, self.cfg.track_color, (screen_x_left, screen_y_left), (screen_x_right, screen_y_right), self.cfg.track_thickness)
+    
     def draw_cart(self, env: CartPoleEnv):
-        screen_x, screen_y = self.to_screen(env.state.x, 0)
-        pygame.draw.rect(self.screen, self.cfg.cart_color, pygame.Rect(screen_x-self.cfg.cart_width // 2, screen_y-self.cfg.cart_height // 2, self.cfg.cart_width, self.cfg.cart_height))
-
+        self.draw_cart_body(env)
+        self.draw_cart_wheels(env)
+            
+    def draw_cart_body(self, env: CartPoleEnv):
+        screen_x, screen_y = self.world_to_screen(env.state.x, 0)
+        screen_y -= self.cfg.cart_height + self.cfg.track_thickness // 2 + self.cfg.cart_wheel_radius * 2
+        
+        pygame.draw.rect(self.screen, self.cfg.cart_body_color, pygame.Rect(screen_x-self.cfg.cart_width // 2, screen_y, self.cfg.cart_width, self.cfg.cart_height))
+    
+    def draw_cart_wheels(self, env: CartPoleEnv):
+        _, screen_y = self.world_to_screen(-1, 0)
+        screen_y -= self.cfg.track_thickness // 2 + self.cfg.cart_wheel_radius
+        
+        screen_x_wheel_1, _ = self.world_to_screen(env.state.x, -1)
+        screen_x_wheel_2, _ = self.world_to_screen(env.state.x, -1)
+        
+        screen_x_wheel_1 -= self.cfg.cart_wheel_radius
+        screen_x_wheel_2 += self.cfg.cart_wheel_radius
+        
+        pygame.draw.circle(self.screen, self.cfg.cart_wheel_color, (screen_x_wheel_1, screen_y), self.cfg.cart_wheel_radius)
+        pygame.draw.circle(self.screen, self.cfg.cart_wheel_color, (screen_x_wheel_2, screen_y), self.cfg.cart_wheel_radius)
+    
     def draw_pole(self, env: CartPoleEnv):
 
         theta = env.state.theta
@@ -93,10 +118,13 @@ class PygameUI:
         tip_x = base_x - length * np.sin(theta)
         tip_y = base_y - length * np.cos(theta)
 
-        base = self.to_screen(base_x, base_y)
-        tip = self.to_screen(tip_x, tip_y)
+        screen_base_x, screen_base_y = self.world_to_screen(base_x, base_y)
+        screen_tip_x, screen_tip_y = self.world_to_screen(tip_x, tip_y)
 
-        pygame.draw.line(self.screen, self.cfg.pole_color, base, tip, self.cfg.pole_width)
+        screen_base_y -= self.cfg.cart_wheel_radius * 2 + self.cfg.cart_height // 2
+        screen_tip_y -= self.cfg.cart_wheel_radius * 2 + self.cfg.cart_height // 2
+        
+        pygame.draw.line(self.screen, self.cfg.pole_color, (screen_base_x, screen_base_y), (screen_tip_x, screen_tip_y), self.cfg.pole_width)
 
     def display_action(self, action: Action):
 
@@ -144,7 +172,7 @@ class PygameUI:
         
         return ((p_array-center_p_array) @ rot) + center_p_array
 
-    def to_screen(self, world_x, world_y):
+    def world_to_screen(self, world_x, world_y):
         return self.cfg.window_width // 2 + world_x * self.to_screen_scaling , self.cfg.track_y - world_y * self.to_screen_scaling 
     def quit(self):
         pygame.quit()
