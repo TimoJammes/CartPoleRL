@@ -37,12 +37,14 @@ def main():
     elif args.epsilon is not None:
         cfg = replace(cfg, agent=replace(cfg.agent, epsilon=args.epsilon))
     if args.fail_angle is not None:
-        if args.fail_angle == -1:
-            args.fail_angle = None
-        cfg = replace(cfg, task=replace(cfg.task, fail_angle_deg=args.fail_angle))
+        # if args.fail_angle == -1:
+        #     args.fail_angle = None
+        cfg = replace(cfg, task=replace(cfg.task, fail_angle_deg=None))
     if args.episodes is not None:
         assert args.episodes > 0
         cfg = replace(cfg, task=replace(cfg.task, num_episodes=args.episodes))
+    if args.no_time_limit:
+        cfg = replace(cfg, task=replace(cfg.task, max_time=None))
 
     env = CartPoleEnv(cfg.physics, cfg.task, env_rng, REWARDS[cfg.task.reward], OBSERVATIONS[cfg.task.observation])
     
@@ -95,7 +97,10 @@ def main():
 
             if episode_end_state != EpisodeEndState.NONE:
                 
-                episode_stats.append(runs._to_stats(episode_num, env.curr_step, episode_end_state, agent_wrapper.episode_rewards[:]))
+                episode_stats.append(runs._to_stats(episode_num, env.curr_step, episode_end_state,
+                                                    episode_rewards_sum=agent_wrapper.episode_rewards_sum,
+                                                    episode_states=env.episode_states[:] if not args.no_states else None,
+                                                    episode_rewards=agent_wrapper.episode_rewards[:] if not args.only_sum else None))
 
                 obs = env.reset()
                 agent_wrapper.episode_reset()
@@ -158,7 +163,9 @@ def parse_args():
     parser.add_argument("--gif", action="store_true", help="save a gif of the GUI")
     parser.add_argument("--gif-length", type=float, default=5, help="choose gif length (with --gif) (1-15s)")
     parser.add_argument("--gif-name", type=str, default="demo", help="choose gif save name")
-    
+    parser.add_argument("--only-sum", action="store_true", help="only save sum of rewards per episode instead of list of each step reward")
+    parser.add_argument("--no-states", action="store_true", help="do not save states per step per episode")
+    parser.add_argument("--no-time-limit", action="store_true", help="remove per-episode time limit (only with --watch)")
     args = parser.parse_args()
 
     if args.headless and args.human:
@@ -173,13 +180,19 @@ def parse_args():
         parser.error("--load cannot be combined with --human.")
     if args.human and args.save:
         parser.error("--human has no model to save.")
-    if args.name and args.save is None:
+    if args.name and not args.save:
         parser.error("--name cannot be used without --save.")
     if not(1 <= args.gif_length <= 15):
         parser.error("--gif-length must be 1-15s.")
     if args.gif and (Path("assets") / f"{args.gif_name}.gif").exists():
         parser.error(f"gif assets/{args.gif_name}.gif already exists, please choose a different name.")
-
+    if args.only_sum and not args.save:
+        parser.error("--only-sum can only be used when saving (--save)")
+    if args.no_states and not args.save:
+        parser.error("--no-states can only be used when saving (--save)")
+    if not args.watch and args.no_time_limit:
+        parser.error("--no-time-limit can only be used with --watch")
+        
     return args
 
 if __name__ == "__main__":

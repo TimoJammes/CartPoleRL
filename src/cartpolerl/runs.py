@@ -26,6 +26,7 @@ from .agents import Agent
 from .config import Config
 from .env import EnvSpec
 from .episode_end_state import EpisodeEndState
+from .state import State
 
 FORMAT_VERSION = 2
 
@@ -47,12 +48,17 @@ class LoadedRun:
     meta: dict[str, Any]
     rng_states: dict[str, dict[str, Any]]
 
-def _to_stats(episode_num, num_steps, end_state: EpisodeEndState, episode_rewards: list[float]) -> dict[str, Any]:
+def _to_stats(episode_num, num_steps, end_state: EpisodeEndState, 
+              episode_rewards_sum: float,
+              episode_states: list[State] | None = None,
+              episode_rewards: list[float] | None = None) -> dict[str, Any]:
 
     return {
         "episode": episode_num,
         "steps": num_steps,
         "end_state": end_state,
+        "rewards_sum": episode_rewards_sum,
+        "states": episode_states,
         "rewards": episode_rewards,
         }
 
@@ -64,6 +70,9 @@ def _to_jsonable(obj: Any) -> Any:
         return str(obj)
     if isinstance(obj, np.generic):
         return obj.item()
+    if isinstance(obj, State):
+        return asdict(obj)
+    
     raise TypeError(f"{type(obj).__name__} is not JSON serializable")
 
 
@@ -135,6 +144,7 @@ def save_run(run_dir: Path, cfg: Config, spec: EnvSpec, agent: Agent,# num_episo
     _write_json(run_dir / CONFIG_FILE, asdict(cfg))
     _write_json(run_dir / SPEC_FILE, asdict(spec))
     _write_json(run_dir / RNG_FILE, {name: rng.bit_generator.state for name, rng in rngs.items()})
+    
     _write_json(run_dir / STATS_FILE, {"n_episodes": len(episode_stats), "episode_stats": episode_stats})
     # _write_json(run_dir / STATS_FILE, {"num_episodes": num_episodes})
     meta = {

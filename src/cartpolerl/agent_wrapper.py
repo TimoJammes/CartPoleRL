@@ -20,6 +20,7 @@ class AppAgentWrapper:
         self.rewards_since_action: list[float] = list()
 
         self.episode_rewards: list[float] = list()
+        self.episode_rewards_sum: float = 0
 
     def act(self, agent: Agent, obs: Observation) -> Action:
         if self.steps_since_action < self.min_decision_interval_steps:
@@ -38,7 +39,9 @@ class AppAgentWrapper:
 
         self.rewards_since_action.append(reward)
         self.episode_rewards.append(reward)
+        self.episode_rewards_sum += reward
 
+        
         if end_state == EpisodeEndState.NONE and self.steps_since_action < self.min_decision_interval_steps:
             return
 
@@ -55,3 +58,4 @@ class AppAgentWrapper:
         self.steps_since_action = self.min_decision_interval_steps
         self.rewards_since_action.clear()
         self.episode_rewards.clear()
+        self.episode_rewards_sum = 0
