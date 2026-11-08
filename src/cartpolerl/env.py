@@ -48,6 +48,8 @@ class CartPoleEnv:
 
         self.spec = EnvSpec(tuple(VarInfo(f_name, *self.var_to_bounds[f_name]) for f_name in self._obs_names), task_cfg.actions, physics_cfg.dt)
 
+        self.episode_states = list()
+        
         self.reset() # sets self.state
     
     
@@ -76,9 +78,11 @@ class CartPoleEnv:
         # if abs(pole.theta) < 1e-3 and abs(pole.omega) < 
 
         reward = self.reward.fn(self.physics_cfg, self.task_cfg, self.state, action, next_state)
+        
         self.state = next_state
 
-
+        self.episode_states.append(self.state)
+        
         self.curr_step += 1
 
         return self.get_obs(self.state), reward, self.is_done()
@@ -105,11 +109,12 @@ class CartPoleEnv:
         return (theta + np.pi) % (2 * np.pi) - np.pi
 
     def reset(self):
-        # angle_deg = self.rng.uniform(180-self.task_cfg.start_angle_jitter_deg, 180+self.task_cfg.start_angle_jitter_deg)
-        angle_deg = self.rng.normal(self.task_cfg.start_mean_theta_deg, self.task_cfg.start_angle_2sigma / 2)
+        angle_deg = self.rng.uniform(180-self.task_cfg.start_angle_jitter_deg, 180+self.task_cfg.start_angle_jitter_deg)
+        # angle_deg = self.rng.normal(self.task_cfg.start_mean_theta_deg, self.task_cfg.start_angle_2sigma / 2)
         self.state = State(0, 0, self._wrap(np.deg2rad(angle_deg)), 0)
 
         self.curr_step = 0
+        self.episode_states.clear()
 
         return self.get_obs()
 
